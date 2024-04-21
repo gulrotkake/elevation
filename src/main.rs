@@ -15,9 +15,13 @@ struct Args {
 
     #[arg(short, long)]
     geojson: String,
+
+    #[arg(short, long, default_value_t=1)]
+    steps: usize,
+
 }
 
-fn to_svg(data: &Vec<(f64, f64, f64)>) {
+fn to_svg(data: &Vec<(f64, f64, f64)>, steps: usize) {
     let theme = poloto::render::Theme::dark().append(tagu::build::raw(
         ".poloto0.poloto_line{fill:hsla(200, 100%, 50%, 0.2); stroke:hsl(200, 100%, 50%);}",
     ));
@@ -27,8 +31,8 @@ fn to_svg(data: &Vec<(f64, f64, f64)>) {
         .build()
         .data(poloto::plots!(
             poloto::build::origin(),
-            build::plot("DEM").line(data.iter().map(|(dist, dem, _)| (dist, dem))),
-            build::plot("GPS").line(data.iter().map(|(dist, _, gps)| (dist, gps)))
+            build::plot("DEM").line(data.iter().map(|(dist, dem, _)| (dist, dem)).step_by(steps)),
+            build::plot("GPS").line(data.iter().map(|(dist, _, gps)| (dist, gps)).step_by(steps))
         ))
         .build_and_label(("Elevation", "Distance (meters)", "Altitude (meters)"))
         .append_to(poloto::header().append(theme))
@@ -89,5 +93,5 @@ fn main() {
             total.append(&mut result);
         }
     }
-    to_svg(&total);
+    to_svg(&total, args.steps);
 }
