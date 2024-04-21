@@ -17,7 +17,7 @@ struct Args {
     geojson: String,
 }
 
-fn to_svg(data: &Vec<(f64, f64)>) {
+fn to_svg(data: &Vec<(f64, f64, f64)>) {
     let theme = poloto::render::Theme::dark().append(tagu::build::raw(
         ".poloto0.poloto_line{fill:hsla(200, 100%, 50%, 0.2); stroke:hsl(200, 100%, 50%);}",
     ));
@@ -27,7 +27,8 @@ fn to_svg(data: &Vec<(f64, f64)>) {
         .build()
         .data(poloto::plots!(
             poloto::build::origin(),
-            build::plot("Profile").line(data)
+            build::plot("DEM").line(data.iter().map(|(dist, dem, _)| (dist, dem))),
+            build::plot("GPS").line(data.iter().map(|(dist, _, gps)| (dist, gps)))
         ))
         .build_and_label(("Elevation", "Distance (meters)", "Altitude (meters)"))
         .append_to(poloto::header().append(theme))
@@ -55,7 +56,7 @@ fn main() {
     let features = FeatureCollection::try_from(geojson).unwrap();
 
     let mut distance: f64 = 0.0;
-    let mut total: Vec<(f64, f64)> = vec![];
+    let mut total: Vec<(f64, f64, f64)> = vec![];
     for feature in features {
         if let Some(geom) = feature.geometry {
             let coordinates = match geom.value {
@@ -63,11 +64,11 @@ fn main() {
                 _ => panic!("Expected a LineString"),
             };
 
-            let mut result: Vec<(f64, f64)> = coordinates
+            let mut result: Vec<(f64, f64, f64)> = coordinates
                 .iter()
                 .enumerate()
                 .map(|(index, coord)| {
-                    let (lng, lat) = (coord[0], coord[1]);
+                    let (lng, lat, elevation) = (coord[0], coord[1], coord[2]);
                     distance += if index > 0 {
                         let p1 = point!(x: coord[0], y: coord[1]);
                         let prev = &coordinates[index - 1];
@@ -82,7 +83,7 @@ fn main() {
                     let buf = band
                         .read_as::<f64>((tx as isize, ty as isize), (1, 1), (1, 1), None)
                         .unwrap();
-                    (distance.round(), buf.data[0].round())
+                    (distance.round(), buf.data[0].round(), elevation)
                 })
                 .collect();
             total.append(&mut result);
