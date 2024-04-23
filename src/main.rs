@@ -16,9 +16,8 @@ struct Args {
     #[arg(short, long)]
     geojson: String,
 
-    #[arg(short, long, default_value_t=1)]
+    #[arg(short, long, default_value_t = 1)]
     steps: usize,
-
 }
 
 fn to_svg(data: &Vec<(f64, f64, f64)>, steps: usize) {
